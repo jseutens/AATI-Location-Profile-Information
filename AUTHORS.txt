@@ -1,0 +1,2 @@
+This file contains the list of people involved in the development of AATI Events along its history.
+Johan Seutens (https://www.aati.be)

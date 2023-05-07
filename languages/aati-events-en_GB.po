@@ -1,0 +1,112 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: AATI Events\n"
+"POT-Creation-Date: 2023-05-01 17:48+0200\n"
+"PO-Revision-Date: 2023-05-01 17:50+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: aati-events.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+
+#: aati-events.php:56 aati-events.php:67
+msgid "Events"
+msgstr "Events"
+
+#: aati-events.php:57
+msgid "Event"
+msgstr "Event"
+
+#: aati-events.php:58
+msgid "Add New"
+msgstr "Add New"
+
+#: aati-events.php:59
+msgid "Add New Event"
+msgstr "Add New Course"
+
+#: aati-events.php:60
+msgid "Edit Event"
+msgstr "Edit Course"
+
+#: aati-events.php:61
+msgid "New Event"
+msgstr "New Event"
+
+#: aati-events.php:62
+msgid "All Events"
+msgstr "Все события"
+
+#: aati-events.php:63
+msgid "View Event"
+msgstr "View Course"
+
+#: aati-events.php:64
+msgid "Search Events"
+msgstr "Search Events"
+
+#: aati-events.php:65
+msgid "No events found"
+msgstr "No events found"
+
+#: aati-events.php:66
+msgid "No events found in Trash"
+msgstr "No events found in Trash"
+
+#: aati-events.php:97
+msgid "Event Details"
+msgstr "Course Details"
+
+#: aati-events.php:116
+msgid "Link (more info or buy tickets):"
+msgstr "Link (more info or buy tickets):"
+
+#: aati-events.php:119 aati-events.php:182 templates/public/single-event.php:8
+msgid "Start Date:"
+msgstr "Start Date:"
+
+#: aati-events.php:122 aati-events.php:183 templates/public/single-event.php:9
+msgid "End Date:"
+msgstr "End Date:"
+
+#: aati-events.php:181 templates/public/single-event.php:7
+msgid "Link:"
+msgstr "Link:"
+
+#: templates/public/single-event.php:10
+msgid "Add to Calendar"
+msgstr "Add to Calendar"
+
+#. Plugin Name of the plugin/theme
+msgid "AATI Events"
+msgstr "AATI Events"
+
+#. Plugin URI of the plugin/theme
+msgid "https://github.com/jseutens/aati-events"
+msgstr "https://github.com/jseutens/aati-events"
+
+#. Description of the plugin/theme
+msgid ""
+"A custom plugin to create a new post type 'Events' and add additional fields."
+msgstr ""
+"A custom plugin to create a new post type 'Events' and add additional fields."
+
+#. Author of the plugin/theme
+msgid "Johan Seutens"
+msgstr "Johan Seutens"
+
+#. Author URI of the plugin/theme
+msgid "https://www.aati.be"
+msgstr "https://www.aati.be"
