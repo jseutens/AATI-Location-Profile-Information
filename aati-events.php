@@ -87,6 +87,56 @@ function aati_events_register_post_type() {
 }
 add_action('init', 'aati_events_register_post_type',20);
 
+
+function aati_events_info_page() {
+    add_submenu_page(
+        'edit.php?post_type=event',
+        __('Information Page', 'aati-events'),
+        __('Information Page', 'aati-events'),
+        'manage_options',
+        'aati-events-info-page',
+        'aati_events_info_page_content'
+    );
+}
+add_action('admin_menu', 'aati_events_info_page');
+
+function aati_events_info_page_content() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    ?>
+    <div class="wrap">
+        <h1><?php _e('AATI Events Information Page', 'aati-events'); ?></h1>
+        <h2><?php _e('These are the Event dynamic data field name', 'aati-events'); ?></h2>
+        <p><?php _e('The title of the event', 'aati-events'); ?></p>
+        <code>{post_title}</code>
+        <p><?php _e('The content of the event', 'aati-events'); ?></p>
+        <code>{post_content}</code>
+        <p><?php _e('The featured image of the event', 'aati-events'); ?></p>
+        <code>{featured_image}</code>
+        <p><?php _e('Link to the event.', 'aati-events'); ?></p>
+        <code>{cf__aati_event_link}</code>
+        <p><?php _e('Start day of the event.', 'aati-events'); ?></p>
+        <code>{cf__aati_event_start_date}</code>
+        <p><?php _e('End date of the event.', 'aati-events'); ?></p>
+        <code>{cf__aati_event_end_date}</code>
+        <p><?php _e('The address of the event, in one line', 'aati-events'); ?></p>
+        <code>{cf__aati_event_address}</code>
+        <p><?php _e('The address of the event, with breaklines', 'aati-events'); ?></p>
+        <code>{echo:nl2br({cf__aati_event_address})}</code>
+        <p><?php _e('To link to the calendar link so people can add the event to their calendar.', 'aati-events'); ?></p>
+        <code>{cf__aati_event_ics_url}</code>
+        <p><?php _e('To display the date according to the setting in WordPress.', 'aati-events'); ?></p>
+        <code>{echo:aati_events_format_date({cf__aati_event_start_date})}</code>
+        <p><?php _e('To display the dates together in one row but without repeating the same year or month.', 'aati-events'); ?></p>
+        <code>{echo:aati_events_format_event_date({cf__aati_event_start_date},{cf__aati_event_end_date})}</code>
+    </div>
+    <?php
+}
+
+
+
+
 function aati_events_add_meta_boxes() {
     $post_types = array('event'); // Add 'post' to the array of post types
     foreach ($post_types as $post_type) {
