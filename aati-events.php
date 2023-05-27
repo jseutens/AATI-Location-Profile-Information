@@ -398,3 +398,13 @@ function generate_ics_data($start_date, $end_date, $summary, $description, $loca
 
     return $ics_data;
 }
+
+
+// Add the 'Duplicate' link in the row actions on the admin page
+function aati_events_duplicate_link($actions, $post) {
+    if ($post->post_type=='event' && current_user_can('edit_posts')) {
+        $actions['duplicate'] = '<a href="' . wp_nonce_url('admin.php?action=duplicate_event&post=' . $post->ID, basename(__FILE__), 'duplicate_nonce') . '" title="Duplicate this event" rel="permalink">Duplicate</a>';
+    }
+    return $actions;
+}
+add_filter('post_row_actions', 'aati_events_duplicate_link', 10, 2);
