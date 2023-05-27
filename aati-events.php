@@ -399,7 +399,6 @@ function generate_ics_data($start_date, $end_date, $summary, $description, $loca
     return $ics_data;
 }
 
-
 // Add the 'Duplicate' link in the row actions on the admin page
 function aati_events_duplicate_link($actions, $post) {
     if ($post->post_type=='event' && current_user_can('edit_posts')) {
@@ -408,3 +407,49 @@ function aati_events_duplicate_link($actions, $post) {
     return $actions;
 }
 add_filter('post_row_actions', 'aati_events_duplicate_link', 10, 2);
+
+// Handle the duplicate action
+function aati_events_duplicate_event() {
+    // Check if the 'duplicate_event' action is set
+    if (!isset($_REQUEST['action']) || 'duplicate_event' != $_REQUEST['action']) {
+        return;
+    }
+
+    // Check if a post is specified
+    if (!(isset($_GET['post']) || isset($_POST['post']))) {
+        wp_die('No event to duplicate has been supplied!');
+    }
+
+    // Nonce verification
+    if (!isset($_GET['duplicate_nonce']) || !wp_verify_nonce($_GET['duplicate_nonce'], basename(__FILE__))) {
+        return;
+    }
+
+    $post_id = (isset($_GET['post']) ? absint($_GET['post']) : absint($_POST['post']));
+    $post = get_post($post_id);
+
+    // Create a duplicate post
+    $new_post_id = wp_insert_post(
+        array(
+            'post_title'    => $post->post_title . ' (Copy)',
+            'post_type'     => $post->post_type,
+            'post_status'   => 'draft',
+            'post_content'  => $post->post_content,
+        )
+    );
+
+    // Get the post meta
+    $post_meta = get_post_meta($post_id);
+
+    // Copy the post meta to the new post
+    foreach ($post_meta as $key => $values) {
+        foreach ($values as $value) {
+            add_post_meta($new_post_id, $key, $value);
+        }
+    }
+
+    // Redirect to the new post edit page
+    wp_redirect(admin_url('post.php?action=edit&post=' . $new_post_id));
+    exit();
+}
+add_action('admin_init', 'aati_events_duplicate_event');
