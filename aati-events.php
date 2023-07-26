@@ -2,8 +2,8 @@
 /*
 Plugin Name: AATI Events
 Plugin URI: https://github.com/jseutens/aati-events
-Description: A custom plugin to create a new post type 'Events' and add additional fields.
-Version: 1.0
+Description: A custom plugin to create a new post type 'aati_events' and add additional fields.
+Version: 1.1
 Author: Johan Seutens
 Author URI: https://www.aati.be
 Text Domain: aati-events
@@ -83,14 +83,14 @@ function aati_events_register_post_type() {
         'supports'           => array('title','editor','excerpt','custom-fields','revisions','thumbnail','author','page-attributes',)
     );
 
-    register_post_type('event', $args);
+    register_post_type('aati_event', $args);
 }
 add_action('init', 'aati_events_register_post_type',20);
 
 
 function aati_events_info_page() {
     add_submenu_page(
-        'edit.php?post_type=event',
+        'edit.php?post_type=aati_event',
         __('Information Page', 'aati-events'),
         __('Information Page', 'aati-events'),
         'manage_options',
@@ -138,7 +138,7 @@ function aati_events_info_page_content() {
 
 
 function aati_events_add_meta_boxes() {
-    $post_types = array('event'); // Add 'post' to the array of post types
+    $post_types = array('aati_event'); // Add 'post' to the array of post types
     foreach ($post_types as $post_type) {
         add_meta_box(
             'aati_events_meta_box',
@@ -210,8 +210,11 @@ function aati_events_save_meta_box_data($post_id) {
     $start_date = sanitize_text_field($_POST['aati_event_start_date']);
     $end_date = sanitize_text_field($_POST['aati_event_end_date']);
     $address = sanitize_textarea_field($_POST['aati_event_address']);
-
-    // Check if slug has changed, if so delete old .ics file
+// in WP format for comparing ?
+    $start_wp_date = aati_events_format_date($start_date);
+    $end_wp_date = aati_events_format_date($end_date);
+	
+	// Check if slug has changed, if so delete old .ics file
     $old_slug = get_post_meta($post_id, '_aati_event_slug', true);
     if ($old_slug !== $post->post_name) {
         if (file_exists(plugin_dir_path( __FILE__ ) . "events/{$old_slug}.ics")) {
@@ -229,8 +232,10 @@ function aati_events_save_meta_box_data($post_id) {
     }
 
     update_post_meta($post_id, '_aati_event_link', $link);
+    update_post_meta($post_id, '_aati_event_wp_start_date', $start_wp_date);
     update_post_meta($post_id, '_aati_event_start_date', $start_date);
-    update_post_meta($post_id, '_aati_event_end_date', $end_date);
+	update_post_meta($post_id, '_aati_event_wp_end_date', $end_wp_date);
+    update_post_meta($post_id, '_aati_event_end_date', $end_date);	
     update_post_meta($post_id, '_aati_event_address', $address);
     // Save new slug in post meta
     update_post_meta($post_id, '_aati_event_slug', $post->post_name);
@@ -253,7 +258,7 @@ function aati_events_add_to_calendar_link($post_id) {
 
 // this adds the custom fields in a non bricks way to the post content  so currently diabled but i keep the code
 function aati_events_add_custom_fields_to_content($content) {
-    if (get_post_type() === 'event') {
+    if (get_post_type() === 'aati_event') {
         $link = get_post_meta(get_the_ID(), '_aati_event_link', true);
         $start_date = get_post_meta(get_the_ID(), '_aati_event_start_date', true);
         $end_date = get_post_meta(get_the_ID(), '_aati_event_end_date', true);
@@ -285,7 +290,7 @@ function aati_events_format_date($date) {
 // make sure we can change the slug to use for the events / exhibitions 
 function aati_events_settings_page() {
     add_submenu_page(
-        'edit.php?post_type=event',
+        'edit.php?post_type=aati_event',
         __('AATI Events Settings', 'aati-events'),
         __('Settings', 'aati-events'),
         'manage_options',
@@ -343,7 +348,7 @@ function aati_events_settings_page_content() {
             <?php wp_nonce_field('aati_events_save_slug', 'aati_events_nonce'); ?>
             <table class="form-table">
                 <tr valign="top">
-                    <th scope="row"><?php _e('Events Slug', 'aati-events'); ?></th>
+                    <th scope="row"><?php _e('Events Slug', 'event_slug'); ?></th>
                     <td><input type="text" name="aati_events_slug" value="<?php echo esc_attr($slug); ?>" /></td>
                 </tr>
             </table>
@@ -356,7 +361,7 @@ function aati_events_settings_page_content() {
 function aati_events_admin_scripts($hook) {
     $current_screen = get_current_screen();
 
-    if ($current_screen->id === 'event') {
+    if ($current_screen->id === 'aati_event') {
         wp_enqueue_script('aati_events_admin', AATIEVENTS_PLUGIN_URL . '/assets/js/admin.js', array('jquery'), '1.0', true);
     }
 }
@@ -407,7 +412,6 @@ function aati_events_duplicate_link($actions, $post) {
     return $actions;
 }
 add_filter('post_row_actions', 'aati_events_duplicate_link', 10, 2);
-
 // Handle the duplicate action
 function aati_events_duplicate_event() {
     // Check if the 'duplicate_event' action is set
@@ -453,3 +457,237 @@ function aati_events_duplicate_event() {
     exit();
 }
 add_action('admin_init', 'aati_events_duplicate_event');
+
+
+
+
+
+
+/* Add new query type controls to query options */
+add_filter( 'bricks/setup/control_options', 'aati_events_setup_query_controls');
+function aati_events_setup_query_controls( $control_options ) {
+
+    /* Adding new options in the dropdown */
+    $control_options['queryTypes']['aati_events_current'] = esc_html__( 'Current Events' );
+	$control_options['queryTypes']['aati_events_future'] = esc_html__( 'Future Events' );
+
+    return $control_options;
+
+};
+
+/* Run new query if option selected */
+add_filter( 'bricks/query/run', 'aati_events_maybe_run_new_queries', 10, 2);
+function aati_events_maybe_run_new_queries( $results, $query_obj ) {
+    
+    if ( $query_obj->object_type === 'aati_events_current' ) {
+        $results = run_current_query($query_obj);
+    }
+    
+    if ( $query_obj->object_type === 'aati_events_future' ) {
+        $results = run_future_query($query_obj);
+    }
+    
+    return $results;
+}
+
+
+/* Setup post data for posts */
+add_filter( 'bricks/query/loop_object', 'aati_events_setup_post_data', 10, 3);
+function aati_events_setup_post_data( $loop_object, $loop_key, $query_obj ) {
+    
+    /* setup post data if using any of our custom queries */
+    if ( $query_obj->object_type === 'aati_events_current' || $query_obj->object_type === 'aati_events_future' ) {
+		
+       global $post;
+       $post = get_post( $loop_object );
+       setup_postdata( $post );
+		
+    }
+    
+    return $loop_object;
+
+};
+
+
+/* first WP Query arguments */
+function run_current_query() {
+    $aati_events_current_date = current_time('Y-m-d');
+
+    $args = [
+        'post_type' => 'aati_event',
+        'meta_query' => [
+            'relation' => 'AND',
+            [
+                'key' => '_aati_event_start_date',
+                'value' => $aati_events_current_date,
+                'compare' => '<=',
+                'type' => 'DATE',
+            ],
+            [
+                'key' => '_aati_event_end_date',
+                'value' => $aati_events_current_date,
+                'compare' => '>=',
+                'type' => 'DATE',
+            ],
+        ],
+        'orderby' => $query_obj->settings['orderby'],
+        'posts_per_page' => $query_obj->settings['posts_per_page'],
+    ];
+
+    $posts_query = new WP_Query($args);
+
+    return $posts_query->posts;
+}
+
+/* second WP Query arguments */
+function run_future_query() {
+    $aati_events_current_date = current_time('Y-m-d');
+
+    $args = [
+        'post_type' => 'aati_event',
+        'meta_query' => [
+            [
+                'key' => '_aati_event_start_date',
+                'value' => $aati_events_current_date,
+                'compare' => '>',
+                'type' => 'DATE',
+            ],
+        ],
+        'orderby' => $query_obj->settings['orderby'],
+        'posts_per_page' => $query_obj->settings['posts_per_page'],
+    ];
+
+    $posts_query = new WP_Query($args);
+
+    return $posts_query->posts;
+}
+
+
+
+
+
+add_filter( 'bricks/builder/query_control_fields', 'aati_events_add_query_control_fields' );
+function aati_events_add_query_control_fields( $fields ) {
+  // Posts Per Page
+  $fields['posts_per_page'] = [
+    'type'        => 'number',
+    'label'       => esc_html__( 'Posts Per Page', 'aati_events' ),
+    'description' => esc_html__( 'Number of posts to show per page', 'aati_events' ),
+    'responsive'  => false,
+    'min'         => 1,
+    'max'         => 100,
+    'default'     => 10,
+    'conditions'  => [
+      'object_type' => [
+        'in' => [
+          'aati_events_current',
+		  'aati_events_future',
+        ],
+      ],
+    ],
+  ];
+  
+  // Order By
+  $fields['orderby'] = [
+    'type'        => 'select',
+    'label'       => esc_html__( 'Order By', 'aati_events' ),
+    'description' => esc_html__( 'Order posts by', 'aati_events' ),
+    'responsive'  => false,
+    'default'     => 'date',
+    'options'     => [
+      'none'          => esc_html__( 'No order', 'aati_events' ),
+      'ID'            => esc_html__( 'Post ID', 'aati_events' ),
+      'author'        => esc_html__( 'Author', 'aati_events' ),
+      'title'         => esc_html__( 'Title', 'aati_events' ),
+      'date'          => esc_html__( 'Published date', 'aati_events' ),
+      'modified'      => esc_html__( 'Modified date', 'aati_events' ),
+      'rand'          => esc_html__( 'Random', 'aati_events' ),
+    ],
+    'conditions'  => [
+      'object_type' => [
+        'in' => [
+          'aati_events_current',
+		  'aati_events_future',
+        ],
+      ],
+    ],
+  ];
+
+  return $fields;
+}
+
+
+
+
+
+
+
+/*
+add_filter( 'bricks/setup/control_options', 'aati_events_query_controls');
+function aati_events_query_controls( $control_options ) {
+
+    // Add a new query loop type
+    $control_options['queryTypes']['aati_events_query'] = esc_html__( 'AATI Events', 'bricks' );
+    return $control_options;
+
+}
+
+// Custom Control Options
+add_filter( 'bricks/setup/control_options', function( $options ) {
+
+  $options['current_events'] = [
+    'type' => 'checkbox',
+    'label' => esc_html__( 'Show Current Events', 'bricks' ),
+    'tab' => 'query',
+    'default' => false,
+  ];
+
+  $options['future_events'] = [
+    'type' => 'checkbox',
+    'label' => esc_html__( 'Show Future Events', 'bricks' ),
+    'tab' => 'query',
+    'default' => false,
+  ];
+
+  return $options;
+} );
+
+// Handle Query modification
+add_filter( 'bricks/posts/query_vars', function( $query_vars, $settings, $element_id ) {
+
+  if ($settings['current_events'] == true) {
+    $current_date = current_time('Y-m-d');
+
+    $query_vars['meta_query'] = array(
+        'relation' => 'AND',
+        array(
+            'key'     => 'aati_event_start_date',
+            'value'   => $current_date,
+            'compare' => '<=',
+            'type'    => 'DATE'
+        ),
+        array(
+            'key'     => 'aati_event_end_date',
+            'value'   => $current_date,
+            'compare' => '>=',
+            'type'    => 'DATE'
+        ),
+    );
+  }
+
+  if ($settings['future_events'] == true) {
+    $current_date = current_time('Y-m-d');
+
+    $query_vars['meta_query'] = array(
+        array(
+            'key'     => 'aati_event_start_date',
+            'value'   => $current_date,
+            'compare' => '>',
+            'type'    => 'DATE'
+        ),
+    );
+  }
+
+  return $query_vars;
+}, 10, 3 );
+*/
