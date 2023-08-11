@@ -23,7 +23,7 @@ function aati_events_uninstall()
         }
     }
     wp_reset_postdata();
-    unregister_post_type('event');
+    unregister_post_type('aati_event');
 }
 
 aati_events_uninstall();

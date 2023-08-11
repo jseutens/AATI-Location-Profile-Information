@@ -633,3 +633,204 @@ function aati_events_add_query_control_fields( $fields ) {
 
   return $fields;
 }
+
+
+
+function aati_add_export_page() {
+    add_submenu_page(
+        'edit.php?post_type=aati_event', // Parent slug
+        'Export Events', // Page title
+        'Export Events', // Menu title
+        'manage_options', // Capability
+        'aati_export_events', // Menu slug
+        'aati_export_events_page' // Function
+    );
+}
+add_action('admin_menu', 'aati_add_export_page');
+
+function aati_export_events() {
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        wp_die('You do not have sufficient permissions to access this page.');
+    }
+
+    // Get the events
+    $events = get_posts(array(
+        'post_type' => 'aati_event',
+        'posts_per_page' => -1,
+    ));
+
+    // Prepare the CSV file
+    $filename = plugin_dir_path(__FILE__) . 'aati-events.csv';
+    $file = fopen($filename, 'w');
+
+    // Write the header
+    $headers = array('ID', 'Title', 'Content');
+    $meta_keys = aati_get_meta_keys('aati_event');
+    $headers = array_merge($headers, $meta_keys);
+    fputcsv($file, $headers);
+
+    // Write the events
+    foreach ($events as $event) {
+        $id = $event->ID;
+        $title = get_the_title($id);
+        $content = $event->post_content;
+        $row = array($id, $title, $content);
+
+        foreach ($meta_keys as $key) {
+            $row[] = get_post_meta($id, $key, true);
+        }
+
+        fputcsv($file, $row);
+    }
+
+    // Close the file
+    fclose($file);
+
+    // Return the path to the file
+    return $filename;
+}
+
+function aati_export_events_page() {
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Check if the export button has been pressed
+    if (isset($_POST['aati_export'])) {
+        $filename = aati_export_events();
+        $filename = str_replace(plugin_dir_path(__FILE__), '', $filename);
+        $message = 'Events exported successfully. <a href="' . plugins_url($filename, __FILE__) . '">Download CSV</a>';
+    }
+
+    // Render the export page
+    echo '<div class="wrap">';
+    echo '<h1>Export Events</h1>';
+    if (isset($message)) {
+        echo '<p>' . $message . '</p>';
+    }
+    echo '<form method="post">';
+    echo '<input type="submit" name="aati_export" class="button button-primary" value="Export Events">';
+    echo '</form>';
+    echo '</div>';
+}
+
+
+
+
+function aati_get_meta_keys($post_type) {
+    global $wpdb;
+
+    $query = "
+        SELECT DISTINCT($wpdb->postmeta.meta_key) 
+        FROM $wpdb->posts 
+        LEFT JOIN $wpdb->postmeta 
+        ON $wpdb->posts.ID = $wpdb->postmeta.post_id 
+        WHERE $wpdb->posts.post_type = '%s'
+    ";
+
+    $meta_keys = $wpdb->get_col($wpdb->prepare($query, $post_type));
+
+    return $meta_keys;
+}
+
+
+
+function aati_import_events_page() {
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Check if the import button has been pressed
+    if (isset($_POST['aati_import'])) {
+        $message = aati_import_events();
+    }
+
+    // Render the import page
+    echo '<div class="wrap">';
+    echo '<h1>Import Events</h1>';
+    if (isset($message)) {
+        echo '<p>' . $message . '</p>';
+    }
+    echo '<form method="post" enctype="multipart/form-data">';
+    echo '<input type="file" name="csv_file">';
+    echo '<input type="submit" name="aati_import" class="button button-primary" value="Import Events">';
+    echo '</form>';
+    echo '</div>';
+}
+
+function aati_add_import_page() {
+    add_submenu_page(
+        'edit.php?post_type=aati_event',
+        'Import Events',
+        'Import Events',
+        'manage_options',
+        'aati_import_events',
+        'aati_import_events_page'
+    );
+}
+add_action('admin_menu', 'aati_add_import_page');
+
+function aati_import_events() {
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        wp_die('You do not have sufficient permissions to access this page.');
+    }
+
+    // Check if a file was uploaded
+    if (!isset($_FILES['csv_file'])) {
+        return 'No file was uploaded.';
+    }
+
+    // Check if the file is a CSV file
+    if (pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION) !== 'csv') {
+        return 'The uploaded file is not a CSV file.';
+    }
+
+    // Open the file
+    $file = fopen($_FILES['csv_file']['tmp_name'], 'r');
+
+    // Get the header
+    $headers = fgetcsv($file);
+
+    // Check if the Title column exists
+    if (!in_array('Title', $headers)) {
+        return 'The CSV file does not have a Title column.';
+    }
+
+    // Loop through the lines
+    while (($line = fgetcsv($file)) !== false) {
+        // Check if the title is not empty
+        $title = $line[array_search('Title', $headers)];
+        if (empty($title)) {
+            return 'One or more events do not have a title.';
+        }
+
+        // Prepare the post data
+        $post_data = array(
+            'post_type' => 'aati_event',
+            'post_title' => $title,
+            'post_content' => $line[array_search('Content', $headers)],
+            'post_status' => 'publish',
+        );
+
+        // Insert the post
+        $post_id = wp_insert_post($post_data);
+
+        // Add the meta data
+        $meta_keys = aati_get_meta_keys('aati_event');
+        foreach ($meta_keys as $key) {
+            if (($index = array_search($key, $headers)) !== false) {
+                update_post_meta($post_id, $key, $line[$index]);
+            }
+        }
+    }
+
+    // Close the file
+    fclose($file);
+
+    // Return a success message
+    return 'Events imported successfully.';
+}
