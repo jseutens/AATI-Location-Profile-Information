@@ -718,7 +718,6 @@ function aati_export_events_page() {
 
 
 
-
 function aati_get_meta_keys($post_type) {
     global $wpdb;
 
@@ -736,30 +735,6 @@ function aati_get_meta_keys($post_type) {
 }
 
 
-
-function aati_import_events_page() {
-    // Check user capability
-    if (!current_user_can('manage_options')) {
-        return;
-    }
-
-    // Check if the import button has been pressed
-    if (isset($_POST['aati_import'])) {
-        $message = aati_import_events();
-    }
-
-    // Render the import page
-    echo '<div class="wrap">';
-    echo '<h1>Import Events</h1>';
-    if (isset($message)) {
-        echo '<p>' . $message . '</p>';
-    }
-    echo '<form method="post" enctype="multipart/form-data">';
-    echo '<input type="file" name="csv_file">';
-    echo '<input type="submit" name="aati_import" class="button button-primary" value="Import Events">';
-    echo '</form>';
-    echo '</div>';
-}
 
 function aati_add_import_page() {
     add_submenu_page(
@@ -795,24 +770,13 @@ function aati_import_events() {
     // Get the header
     $headers = fgetcsv($file);
 
-    // Check if the Title column exists
-    if (!in_array('Title', $headers)) {
-        return 'The CSV file does not have a Title column.';
-    }
-
     // Loop through the lines
     while (($line = fgetcsv($file)) !== false) {
-        // Check if the title is not empty
-        $title = $line[array_search('Title', $headers)];
-        if (empty($title)) {
-            return 'One or more events do not have a title.';
-        }
-
         // Prepare the post data
         $post_data = array(
             'post_type' => 'aati_event',
-            'post_title' => $title,
-            'post_content' => $line[array_search('Content', $headers)],
+            'post_title' => sanitize_text_field($line[array_search('Title', $headers)]),
+            'post_content' => sanitize_text_field($line[array_search('Content', $headers)]),
             'post_status' => 'publish',
         );
 
@@ -820,10 +784,9 @@ function aati_import_events() {
         $post_id = wp_insert_post($post_data);
 
         // Add the meta data
-        $meta_keys = aati_get_meta_keys('aati_event');
-        foreach ($meta_keys as $key) {
-            if (($index = array_search($key, $headers)) !== false) {
-                update_post_meta($post_id, $key, $line[$index]);
+        foreach ($headers as $index => $key) {
+            if (substr($key, 0, 1) === '_') {  // Check if the header starts with an underscore, indicating it's a custom field
+                update_post_meta($post_id, $key, sanitize_text_field($line[$index]));
             }
         }
     }
@@ -833,4 +796,30 @@ function aati_import_events() {
 
     // Return a success message
     return 'Events imported successfully.';
+}
+
+
+function aati_import_events_page() {
+    // Check user capability
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Check if the import button has been pressed
+    $message = '';
+    if (isset($_POST['aati_import'])) {
+        $message = aati_import_events();
+    }
+
+    // Render the import page
+    echo '<div class="wrap">';
+    echo '<h1>Import Events</h1>';
+    if (!empty($message)) {
+        echo '<p>' . $message . '</p>';
+    }
+    echo '<form method="post" enctype="multipart/form-data">';
+    echo '<input type="file" name="csv_file">';
+    echo '<input type="submit" name="aati_import" class="button button-primary" value="Import Events">';
+    echo '</form>';
+    echo '</div>';
 }
